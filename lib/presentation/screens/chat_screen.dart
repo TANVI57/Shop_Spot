@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -9,46 +10,83 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
+  // Cleared out dummy messages. Added one welcome message from Support to start the conversation.
   final List<Map<String, dynamic>> messages = [
-    {"message": "I need help with my order.", "isMe": false, "time": "10:15"},
     {
-      "message": "Sure, which order are you referring to?",
-      "isMe": true,
-      "time": "10:16",
-    },
-    {
-      "message": "The shoes order I placed last week.",
+      "message": "Hello! How can I help you with your shopping today?",
       "isMe": false,
-      "time": "10:17",
+      "time": "Just now",
     },
-    {
-      "message": "I will check the status for you.",
-      "isMe": true,
-      "time": "10:18",
-    },
-    {"message": "Thank you.", "isMe": false, "time": "10:19"},
   ];
+
+  // Function to automatically scroll to the bottom when a new message arrives
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   void sendMessage() {
     if (messageController.text.trim().isEmpty) return;
 
+    String userMessage = messageController.text;
+
     setState(() {
       messages.add({
-        "message": messageController.text,
+        "message": userMessage,
         "isMe": true,
         "time": TimeOfDay.now().format(context),
       });
     });
 
     messageController.clear();
+    _scrollToBottom();
+
+    // Simulate Customer Support replying after 1.5 seconds
+    Timer(const Duration(milliseconds: 1500), () {
+      simulateSupportReply(userMessage);
+    });
+  }
+
+  // Simple automated reply logic based on what the customer types
+  void simulateSupportReply(String customerMessage) {
+    String reply =
+        "Thank you for reaching out. A live agent will connect with you shortly.";
+
+    final lowerMsg = customerMessage.toLowerCase();
+    if (lowerMsg.contains("order") || lowerMsg.contains("track")) {
+      reply =
+          "Please share your Order ID, and I'll gladly check the delivery status for you!";
+    } else if (lowerMsg.contains("hello") || lowerMsg.contains("hi")) {
+      reply = "Hi there! What can I assist you with today?";
+    } else if (lowerMsg.contains("refund") || lowerMsg.contains("return")) {
+      reply =
+          "You can initiate a return directly from your 'My Orders' section, or I can help you here.";
+    }
+
+    setState(() {
+      messages.add({
+        "message": reply,
+        "isMe": false,
+        "time": TimeOfDay.now().format(context),
+      });
+    });
+
+    _scrollToBottom();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -78,11 +116,11 @@ class _ChatScreenState extends State<ChatScreen> {
           SizedBox(width: 15),
         ],
       ),
-
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
+              controller: _scrollController, // Attached scroll controller here
               padding: const EdgeInsets.all(15),
               itemCount: messages.length,
               itemBuilder: (context, index) {
@@ -135,7 +173,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
